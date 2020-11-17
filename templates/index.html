@@ -5,6 +5,9 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta property="og:title" content="스파르타코딩클럽 10기 | 내장소 메모장"/>
+    <meta property="og:description" content="내 장소를 메모할 수 있어요!!"/>
+    <meta property="og:image" content="{{ url_for('static', filename='ogimage.jpg') }}"/>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
@@ -21,7 +24,7 @@
     <link href="https://fonts.googleapis.com/css?family=Stylish&display=swap" rel="stylesheet">
 
 
-    <title>스파르타코딩클럽 | 나홀로 메모장</title>
+    <title>스파르타코딩클럽 10기 | 내장소 메모장</title>
 
     <!-- style -->
     <style type="text/css">
@@ -65,7 +68,8 @@
     <div id="cards-box">
         <div class="form-inline md-form mr-auto mb-4">
             <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" id="search-box">
-            <button class="btn aqua-gradient btn-rounded btn-sm my-0" type="button" onclick="map_search()">Search</button>
+            <button class="btn aqua-gradient btn-rounded btn-sm my-0" type="button" onclick="map_search()">Search
+            </button>
         </div>
 
         <div id="map" style="width:100%;height:350px;"></div>
@@ -130,13 +134,13 @@
                 });
             }
 
-            function savePlace(){
+            function savePlace() {
                 let comment = $("#post-comment").val();
 
                 $.ajax({
                     type: "POST", // POST 방식으로 요청하겠다.
                     url: "/place", // /memo라는 url에 요청하겠다.
-                    data: {x_give: myPlace.x, y_give:myPlace.y, comment_give: comment}, // 데이터를 주는 방법
+                    data: {x_give: myPlace.x, y_give: myPlace.y, comment_give: comment}, // 데이터를 주는 방법
                     success: function (response) { // 성공하면
                         if (response["result"] == "success") {
                             alert("포스팅 성공!");
@@ -147,17 +151,17 @@
                 })
             }
 
-             function showPlace() {
+            function showPlace() {
                 $.ajax({
                     type: "GET",
-                    url:  `/place?x_give=${myPlace.x}&y_give=${myPlace.y}`,
+                    url: `/place?x_give=${myPlace.x}&y_give=${myPlace.y}`,
                     data: {},
                     success: function (response) {
-                       if(response['place']) {
-                           $("#post-comment").val(response['place'].comment);
-                       } else {
-                           $("#post-comment").val('');
-                       }
+                        if (response['place']) {
+                            $("#post-comment").val(response['place'].comment);
+                        } else {
+                            $("#post-comment").val('');
+                        }
                     }
                 })
             }
