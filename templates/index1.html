@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <!-- Webpage Title -->
+    <title>Collection Book</title>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta property="og:title" content="My Collection Book"/>
+    <meta property="og:description" content="원하는 주제에 맞는 평가를 쉽고 빠르게 저장할 수 있어요!"/>
+    <meta property="og:image" content="{{ url_for('static', filename='ogimage.jpg') }}"/>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+
+    <!-- JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+
+    <!-- 구글폰트 -->
+    <link href="https://fonts.googleapis.com/css?family=Do+Hyeon&display=swap" rel="stylesheet">
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $("#reviews-box").html("");
+            showCategories();
+            showMemories();
+        });
+
+        function openClose() {
+            if ($("#category").val() == 'new') {
+                $("#post-box").show();
+            } else {
+                $("#post-box").hide();
+                showMemories();
+            }
+        }
+
+        function saveCategory() {
+            let fields = [];
+            $("input[name=category_field]").each(function (idx) {
+                fields.push($("input[name=category_field]:eq(" + idx + ")").val());
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "/category",
+                data: {category_give: $("#category-name").val(), fields_give:fields},
+                success: function (response) {
+                    if (response['result'] == 'false') {
+                        alert("중복된 값입니다.")
+                    } else {
+                        alert("저장되었습니다");
+                        showCategories();
+                        $("#post-box").hide();
+                    }
+                }
+            });
+        }
+
+        function showCategories() {
+            console.log("showCategories")
+            $("#category").empty();
+            $("#category").append('<option value="none">=== 선택 ===</option>');
+            // 1. 리뷰 목록을 서버에 요청하기
+            $.ajax({
+                type: "GET",
+                url: "/category",
+                data: {},
+                success: function (response) {
+                    // 2. 요청 성공 여부 확인하기
+                    if (response["result"] == "success") {
+                        let categories = response["categories"];
+                        // 3. 요청 성공했을 때 리뷰를 올바르게 화면에 나타내기
+                        for (let i = 0; i < categories.length; i++) {
+                            makeCategory(categories[i]["name"]);
+                        }
+                        $("#category").append('<option value="new">+ 새로 추가...</option>');
+                    } else {
+                        alert("주제를 받아오지 못했습니다");
+                    }
+                }
+            })
+        }
+
+        function makeCategory(name) {
+
+            let tempHtml = "";
+            if (name == $("#category-name").val()) {
+                tempHtml = `<option value="${name}" selected>${name}</option>`;
+            } else {
+                tempHtml = `<option value="${name}">${name}</option>`;
+            }
+            $("#category").append(tempHtml);
+        }
+
+        function saveData() {
+            // 1. 제목, 저자, 리뷰 내용을 가져옵니다.
+            // 원하는 collection과 연결을 먼저해야
+            let title = $("#title").val();
+            let tasteRate = $("#tasteRate").val();
+            let review = $("#bookReview").val();
+
+            // 2. 제목, 저자, 리뷰 중 하나라도 입력하지 않았을 경우 alert를 띄웁니다.
+            if (title == "") {
+                alert("이름을 입력해주세요");
+                $("#title").focus();
+                return;
+            } else if (tasteRate == "") {
+                alert("맛 평가를 입력해주세요");
+                $("#tasteRate").focus();
+                return;
+            } else if (review == "") {
+                alert("추가설명을 입력해주세요");
+                $("#bookReview").focus();
+                return;
+            }
+
+            // 3. POST /review 에 저장을 요청합니다.
+            $.ajax({
+                type: "POST",
+                url: "/category/data",
+                data: {
+                    title_give: title,
+                    tasteRate_give: tasteRate,
+                    review_give: review,
+                    category_give: $("#category").val()
+                },
+                success: function (response) {
+                    if (response["result"] == "success") {
+                        alert(response["msg"]);
+                        $("#title").val('');
+                        $("#tasteRate").val('');
+                        $("#bookReview").val('');
+                        showMemories();
+                    }
+                }
+            })
+        }
+
+        function showMemories() {
+            // 1. 리뷰 목록을 서버에 요청하기
+            console.log("showMemories")
+            $("#reviews-box").empty();
+            $.ajax({
+                type: "GET",
+                url: "/category/data?category_give=" + $("#category").val(),
+                data: {},
+                success: function (response) {
+                    // 2. 요청 성공 여부 확인하기
+                    if (response["result"] == "success") {
+                        let reviews = response["reviews"];
+                        // 3. 요청 성공했을 때 리뷰를 올바르게 화면에 나타내기
+                        for (let i = 0; i < reviews.length; i++) {
+                            makeCard(reviews[i]["title"], reviews[i]["tasteRate"], reviews[i]["review"]);
+                        }
+                    } else {
+                        alert("리뷰를 받아오지 못했습니다");
+                    }
+                }
+            })
+        }
+
+        function makeCard(title, tasteRate, review) {
+            let tempHtml = `<tr>
+                        <td>${title}</td>
+                        <td>${tasteRate}</td>
+                        <td>${review}</td>
+                    </tr>`;
+            $("#reviews-box").append(tempHtml);
+        }
+
+        function addField() {
+            let tempHtml = `<div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="필드명" name="category_field"
+                                   aria-label="Recipient's username" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <span class="input-group-text" id="basic-addon2" onclick="removeField()">-</span>
+                            </div>
+                        </div>`;
+            $("#field-area").append(tempHtml);
+        }
+
+    </script>
+
+    <style type="text/css">
+        * {
+            font-family: "Do Hyeon", sans-serif;
+        }
+
+        h1,
+        h5 {
+            display: inline;
+        }
+
+        .info {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .review {
+            text-align: center;
+        }
+
+        .reviews {
+            margin-top: 100px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div class="info">
+        <h1>주제를 선택해 주세요!</h1>
+        <form>
+            <select id="category" onchange="openClose()">
+
+            </select>
+        </form>
+        <h2>기준값을 설정해 주세요!</h2>
+        <div class="wrap">
+            <div id="post-box" class="form-post" style="display: none;">
+                <div>
+                    <div class="form-group">
+                        <label for="category-name">카테고리명</label>
+                        <input id="category-name" class="form-control" placeholder="">
+                    </div>
+                    <div id="field-area">
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="필드명" name="category_field"
+                                   aria-label="Recipient's username" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <span class="input-group-text" id="basic-addon2" onclick="addField()">+</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="saveCategory()">카테고리 저장</button>
+                </div>
+            </div>
+        </div>
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text">이름</span>
+            </div>
+            <input type="text" class="form-control" id="title">
+        </div>
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text">맛 평가</span>
+            </div>
+            <input type="text" class="form-control" id="tasteRate">
+        </div>
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text">추가 설명</span>
+            </div>
+            <input type="text" class="form-control" id="bookReview">
+        </div>
+        <div class="review">
+            <button onclick="saveData()" type="button" class="btn btn-primary">리뷰 작성하기</button>
+        </div>
+    </div>
+    <div class="reviews">
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">이름</th>
+                <th scope="col">맛 평가</th>
+                <th scope="col">추가 설명</th>
+            </tr>
+            </thead>
+            <tbody id="reviews-box">
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+
+</html>
