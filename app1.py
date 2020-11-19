@@ -3,7 +3,7 @@ from pymongo import MongoClient  # pymongo를 임포트 하기(패키지 인스�
 
 app = Flask(__name__)
 
-client = MongoClient('mongodb://localhost', 27017)  # mongoDB는 27017 포트로 돌아갑니다.
+client = MongoClient('mongodb://test:test@localhost', 27017)  # mongoDB는 27017 포트로 돌아갑니다.
 db = client.dbsparta  # 'dbsparta'라는 이름의 db를 만듭니다.
 
 
@@ -28,7 +28,11 @@ def set_category():
         return jsonify({'result': 'false'})
     else:
         index = len(list(db.category_info.find({}))) + 1
-        collection = {'name': category_receive, 'index': index, 'fields':fields_receive}
+        fields = [];
+        for idx, val in enumerate(fields_receive):
+            fields.append({'idx':idx, 'title':val})
+
+        collection = {'name': category_receive, 'index': index, 'fields':fields}
         db.category_info.insert_one(collection)
 
     return jsonify({'result': 'success'})
@@ -36,15 +40,16 @@ def set_category():
 
 @app.route('/category/data', methods=['POST'])
 def set_data():
-    category_receive = request.form['category_give']
-    title_receive = request.form['title_give']
-    tasteRate_receive = request.form['tasteRate_give']
-    review_receive = request.form['review_give']
+    request_recive = request.form.to_dict();
 
-    index = db.category_info.find_one({'name': category_receive})['index']
-    info = {'title': title_receive,
-            'tasteRate': tasteRate_receive,
-            'review': review_receive}
+    index = db.category_info.find_one({'name': request_recive['category_give']})['index']
+    info = {}
+    for i in range(10):
+        try:
+            info['field' + request_recive['fields['+str(i)+'][idx]']] = request_recive['fields['+str(i)+'][content]']
+        except:
+            break
+
     db["collection" + str(index)].insert_one(info)
 
     return jsonify({'result': 'success', 'msg': '리뷰가 성공적으로 작성되었습니다.'})
@@ -62,7 +67,8 @@ def bring_reviews():
     category_receive = request.args.get('category_give')
     index = db.category_info.find_one({'name': category_receive})['index']
     databases = list(db["collection" + str(index)].find({}, {'_id': 0}))
-    return jsonify({'result': 'success', 'reviews': databases})
+    category = db.category_info.find_one({'name': category_receive}, {'_id': False})
+    return jsonify({'result': 'success', 'reviews': databases, 'category':category})
 
 
 if __name__ == '__main__':

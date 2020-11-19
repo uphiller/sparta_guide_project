@@ -102,35 +102,23 @@
         }
 
         function saveData() {
-            // 1. 제목, 저자, 리뷰 내용을 가져옵니다.
-            // 원하는 collection과 연결을 먼저해야
-            let title = $("#title").val();
-            let tasteRate = $("#tasteRate").val();
-            let review = $("#bookReview").val();
-
-            // 2. 제목, 저자, 리뷰 중 하나라도 입력하지 않았을 경우 alert를 띄웁니다.
-            if (title == "") {
-                alert("이름을 입력해주세요");
-                $("#title").focus();
-                return;
-            } else if (tasteRate == "") {
-                alert("맛 평가를 입력해주세요");
-                $("#tasteRate").focus();
-                return;
-            } else if (review == "") {
-                alert("추가설명을 입력해주세요");
-                $("#bookReview").focus();
-                return;
+            for (let i = 0; i < fields.length; i++) {
+                if(!$("#field"+fields[i]['idx']).val()){
+                    alert(`${fields[i]['title']}를 입력해주세요`);
+                    $("#"+fields[i]['idx']).focus();
+                    return;
+                } else {
+                    fields[i]['content'] = $("#field"+fields[i]['idx']).val();
+                }
             }
 
             // 3. POST /review 에 저장을 요청합니다.
+            console.log(fields)
             $.ajax({
                 type: "POST",
                 url: "/category/data",
                 data: {
-                    title_give: title,
-                    tasteRate_give: tasteRate,
-                    review_give: review,
+                    fields:fields,
                     category_give: $("#category").val()
                 },
                 success: function (response) {
@@ -144,11 +132,12 @@
                 }
             })
         }
-
+        let fields = []
         function showMemories() {
             // 1. 리뷰 목록을 서버에 요청하기
-            console.log("showMemories")
             $("#reviews-box").empty();
+            $("#field_box").empty();
+            $("#field_label_box").empty();
             $.ajax({
                 type: "GET",
                 url: "/category/data?category_give=" + $("#category").val(),
@@ -157,10 +146,16 @@
                     // 2. 요청 성공 여부 확인하기
                     if (response["result"] == "success") {
                         let reviews = response["reviews"];
+                        fields = response["category"]['fields'];
                         // 3. 요청 성공했을 때 리뷰를 올바르게 화면에 나타내기
                         for (let i = 0; i < reviews.length; i++) {
-                            makeCard(reviews[i]["title"], reviews[i]["tasteRate"], reviews[i]["review"]);
+                            makeCard(reviews[i], fields);
                         }
+
+                        for (let i = 0; i < fields.length; i++) {
+                            makeField(fields[i]);
+                        }
+
                     } else {
                         alert("리뷰를 받아오지 못했습니다");
                     }
@@ -168,13 +163,25 @@
             })
         }
 
-        function makeCard(title, tasteRate, review) {
-            let tempHtml = `<tr>
-                        <td>${title}</td>
-                        <td>${tasteRate}</td>
-                        <td>${review}</td>
-                    </tr>`;
+        function makeCard(review, fields) {
+            let tempHtml = '<tr>';
+            for (let i = 0; i < fields.length; i++) {
+                tempHtml += `<td>${review['field'+fields[i]['idx']]}</td>`;
+            }
+            tempHtml += '</tr>'
             $("#reviews-box").append(tempHtml);
+        }
+
+        function makeField(field) {
+            let tempHtml = ` <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">${field['title']}</span>
+                                </div>
+                                <input type="text" class="form-control" id="field${field['idx']}">
+                            </div>`;
+            let labelHtml = `<th scope="col">${field['title']}</th>`;
+            $("#field_box").append(tempHtml);
+            $("#field_label_box").append(labelHtml);
         }
 
         function addField() {
@@ -185,6 +192,7 @@
                                 <span class="input-group-text" id="basic-addon2" onclick="removeField()">-</span>
                             </div>
                         </div>`;
+
             $("#field-area").append(tempHtml);
         }
 
@@ -245,24 +253,9 @@
                 </div>
             </div>
         </div>
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text">이름</span>
-            </div>
-            <input type="text" class="form-control" id="title">
+        <div id="field_box">
         </div>
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text">맛 평가</span>
-            </div>
-            <input type="text" class="form-control" id="tasteRate">
-        </div>
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text">추가 설명</span>
-            </div>
-            <input type="text" class="form-control" id="bookReview">
-        </div>
+
         <div class="review">
             <button onclick="saveData()" type="button" class="btn btn-primary">리뷰 작성하기</button>
         </div>
@@ -270,18 +263,13 @@
     <div class="reviews">
         <table class="table">
             <thead>
-            <tr>
+            <tr id="field_label_box">
                 <th scope="col">이름</th>
                 <th scope="col">맛 평가</th>
                 <th scope="col">추가 설명</th>
             </tr>
             </thead>
             <tbody id="reviews-box">
-            <tr>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
             </tbody>
         </table>
     </div>
